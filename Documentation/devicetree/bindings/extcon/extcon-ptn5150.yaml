@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/extcon/extcon-ptn5150.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: PTN5150 CC (Configuration Channel) Logic device
+
+maintainers:
+  - Krzysztof Kozlowski <krzk@kernel.org>
+
+description: |
+  PTN5150 is a small thin low power CC logic chip supporting the USB Type-C
+  connector application with CC control logic detection and indication
+  functions.  It is interfaced to the host controller using an I2C interface.
+
+properties:
+  compatible:
+    const: nxp,ptn5150
+
+  int-gpios:
+    maxItems: 1
+    deprecated: true
+    description:
+      GPIO pin (input) connected to the PTN5150's INTB pin.
+      Use "interrupts" instead.
+
+  interrupts:
+    maxItems: 1
+
+  reg:
+    maxItems: 1
+
+  vbus-gpios:
+    maxItems: 1
+    description:
+      GPIO pin (output) used to control VBUS. If skipped, no such control
+      takes place.
+
+  irq-is-id-quirk:
+    description:
+      The PTN5150 has an open drain output, ID, that is driven low when a
+      UFP is attached. ID is pulled high by an external resistor when either
+      1) no cable is attached or 2) a DFP is attached.
+
+      For designs that do not connect the PTN5150 IRQ, this boolean allows
+      using the ID output as an IRQ by triggering on falling and rising edges.
+
+      A falling edge indicates a UFP is attached (e.g. flash drive). Change
+      to host mode using usb_role_switch_set_role.
+
+      A rising edge indicates the UFP is removed. Prepare for when a DFP
+      is connected by changing to device mode using usb_role_switch_set_role.
+
+      This is useful because it allows a single device tree to support
+      the following:
+
+      Variscite's Symphony board <= 1.4 connects the PTN5150 IRQ pin to
+      a GPIO on the SoM. Starting in Symphony board >= 1.4a, to allow
+      compatibility with all Variscite i.MX8 SoMs, PTN5150 ID pin is
+      instead connected to the same GPIO on the SoM.
+
+required:
+  - compatible
+  - interrupts
+  - reg
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/gpio/gpio.h>
+    #include <dt-bindings/interrupt-controller/irq.h>
+    i2c {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        ptn5150@1d {
+            compatible = "nxp,ptn5150";
+            reg = <0x1d>;
+            interrupt-parent = <&msmgpio>;
+            interrupts = <78 IRQ_TYPE_LEVEL_HIGH>;
+            vbus-gpios = <&msmgpio 148 GPIO_ACTIVE_HIGH>;
+        };
+    };
